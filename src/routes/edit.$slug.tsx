@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Camera, MapPin, Upload, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { categories, cities, conditions } from "@/lib/data";
@@ -18,6 +18,12 @@ import { isVideoFile, isVideoUrl } from "@/lib/media";
 import { toast } from "sonner";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { fetchListing } from "@/lib/listings";
+
+type MediaItem = {
+  preview: string;
+  file?: File;
+  existingUrl?: string;
+};
 
 export const Route = createFileRoute("/edit/$slug")({
   head: () => ({ meta: [{ title: "Edit Listing — Purana Bazaar" }] }),
@@ -33,8 +39,9 @@ function EditListing() {
   const { product } = Route.useLoaderData();
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [files, setFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>(product.images || []);
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>(
+    (product.images || []).map((url) => ({ preview: url, existingUrl: url })),
+  );
   const [title, setTitle] = useState(product.title);
   const [category, setCategory] = useState(product.category);
   const [description, setDescription] = useState(product.description);
@@ -76,6 +83,8 @@ function EditListing() {
     ? dbCategories.map((item) => ({ value: item.slug, label: item.name }))
     : categories.map((c) => ({ value: c.slug, label: c.name }));
 
+  const isAdmin = profile?.role === "admin";
+
   // Check if user is the owner of this listing
   if (!authLoading && user && product.seller_id !== user.id) {
     return (
@@ -94,18 +103,30 @@ function EditListing() {
   }
 
   const onPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const list = Array.from(e.target.files ?? []).slice(0, 12 - previews.length);
-    setFiles((prev) => [...prev, ...list]);
-    setPreviews((prev) => [...prev, ...list.map((f) => URL.createObjectURL(f))]);
+    const list = Array.from(e.target.files ?? []).slice(0, 12 - mediaItems.length);
+    if (!list.length) return;
+    setMediaItems((prev) => [
+      ...prev,
+      ...list.map((file) => ({ preview: URL.createObjectURL(file), file })),
+    ]);
+    e.target.value = "";
   };
 
   const removeFile = (i: number) => {
-    setFiles((f) => {
-      const newFiles = [...f];
-      newFiles.splice(i - (previews.length - files.length), 1);
-      return newFiles;
+    setMediaItems((prev) => {
+      const removed = prev[i];
+      if (removed?.file) URL.revokeObjectURL(removed.preview);
+      return prev.filter((_, idx) => idx !== i);
     });
-    setPreviews((p) => p.filter((_, idx) => idx !== i));
+  };
+
+  const setPrimaryMedia = (index: number) => {
+    setMediaItems((prev) => {
+      const selected = prev[index];
+      if (!selected) return prev;
+      const remaining = prev.filter((_, idx) => idx !== index);
+      return [selected, ...remaining];
+    });
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -117,12 +138,17 @@ function EditListing() {
     
     setSubmitting(true);
     try {
-      // Upload newly selected media files (images/videos)
-      const urls: string[] = [...(previews.filter(p => p.startsWith("https://")) || [])];
-      for (const file of files) {
-        const ext = file.name.split(".").pop() || "jpg";
+      // Index 0 is treated as primary media, so preserve current media order.
+      const urls: string[] = [];
+      for (const item of mediaItems) {
+        if (item.existingUrl) {
+          urls.push(item.existingUrl);
+          continue;
+        }
+        if (!item.file) continue;
+        const ext = item.file.name.split(".").pop() || "jpg";
         const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("listings").upload(path, file, { upsert: false });
+        const { error: upErr } = await supabase.storage.from("listings").upload(path, item.file, { upsert: false });
         if (upErr) throw upErr;
         const { data: pub } = supabase.storage.from("listings").getPublicUrl(path);
         urls.push(pub.publicUrl);
@@ -197,17 +223,32 @@ function EditListing() {
                 <Camera className="h-5 w-5" /><span className="text-xs">Add</span>
                 <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={onPickFiles} />
               </label>
-              {previews.map((src, i) => (
+              {mediaItems.map((item, i) => (
                 <div key={i} className="relative aspect-square rounded-2xl overflow-hidden bg-secondary">
-                  {isVideoUrl(src) || (i >= previews.length - files.length && isVideoFile(files[i - (previews.length - files.length)])) ? (
-                    <video src={src} className="w-full h-full object-contain bg-black/5" muted playsInline preload="metadata" />
+                  {(item.existingUrl && isVideoUrl(item.existingUrl)) || (!!item.file && isVideoFile(item.file)) ? (
+                    <video src={item.preview} className="w-full h-full object-contain bg-black/5" muted playsInline preload="metadata" />
                   ) : (
-                    <img src={src} alt="" className="w-full h-full object-contain" />
+                    <img src={item.preview} alt="" className="w-full h-full object-contain" />
+                  )}
+                  {i === 0 && (
+                    <span className="absolute left-1 top-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">Primary</span>
+                  )}
+                  {isAdmin && mediaItems.length > 2 && i !== 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setPrimaryMedia(i)}
+                      className="absolute bottom-1 left-1 rounded-full bg-card/90 px-2 py-0.5 text-[10px] font-semibold hover:bg-card"
+                    >
+                      Set primary
+                    </button>
                   )}
                   <button type="button" onClick={() => removeFile(i)} className="absolute top-1 right-1 h-6 w-6 grid place-items-center rounded-full bg-card/90"><X className="h-3 w-3" /></button>
                 </div>
               ))}
             </div>
+            {isAdmin && mediaItems.length > 2 && (
+              <p className="mt-2 text-xs text-muted-foreground">Admins can choose one primary media item. The primary media appears first.</p>
+            )}
           </div>
 
           <div className="grid sm:grid-cols-2 gap-5">

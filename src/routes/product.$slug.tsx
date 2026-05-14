@@ -15,11 +15,52 @@ import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { isVideoUrl } from "@/lib/media";
+import { getListingShareUrl, getListingUrl, toAbsoluteUrl } from "@/lib/site";
+import logoPng from "@/assets/logo.png";
+
+function toMetaDescription(text: string | null, title: string, city: string) {
+  const base = (text?.trim() || `Buy ${title} in ${city} on Purana Bazaar.`).replace(/\s+/g, " ");
+  return base.length > 170 ? `${base.slice(0, 167)}...` : base;
+}
+
+function getListingImage(images: string[] | null | undefined) {
+  const first = images?.[0];
+  if (!first) return toAbsoluteUrl(logoPng);
+  return toAbsoluteUrl(first);
+}
 
 export const Route = createFileRoute("/product/$slug")({
-  head: ({ loaderData }) => ({
-    meta: [{ title: `${loaderData?.product?.title ?? "Listing"} — Purana Bazaar` }],
-  }),
+  head: (ctx) => {
+    const product = (ctx as { loaderData?: { product?: { title: string; description: string | null; city: string; slug: string; images?: string[] } } }).loaderData?.product;
+
+    return {
+    meta: product
+      ? [
+          { title: `${product.title} — Purana Bazaar` },
+          { name: "description", content: toMetaDescription(product.description, product.title, product.city) },
+          { property: "og:title", content: product.title },
+          { property: "og:description", content: toMetaDescription(product.description, product.title, product.city) },
+          { property: "og:type", content: "product" },
+          { property: "og:url", content: getListingUrl(product.slug) },
+          { property: "og:image", content: getListingImage(product.images) },
+          { property: "og:image:alt", content: product.title },
+          { property: "og:site_name", content: "Purana Bazaar" },
+          { name: "twitter:card", content: "summary_large_image" },
+          { name: "twitter:title", content: product.title },
+          { name: "twitter:description", content: toMetaDescription(product.description, product.title, product.city) },
+          { name: "twitter:image", content: getListingImage(product.images) },
+        ]
+      : [{ title: "Listing — Purana Bazaar" }],
+    links: product
+      ? [
+          {
+            rel: "canonical",
+            href: getListingUrl(product.slug),
+          },
+        ]
+      : undefined,
+    };
+  },
   component: ProductPage,
   notFoundComponent: () => (
     <div className="min-h-screen grid place-items-center">
@@ -51,6 +92,8 @@ function ProductPage() {
   const [placingOrder, setPlacingOrder] = useState(false);
   const [showOrderConfirmation, setShowOrderConfirmation] = useState(false);
   const { isFav, toggle } = useFavorite(product.id);
+  const shareUrl = getListingShareUrl(product.slug);
+  const shareText = `${product.title} for ${formatPKR(product.price)} in ${product.city}`;
 
   useEffect(() => {
     if (!contactEmail && user?.email) setContactEmail(user.email);
@@ -118,6 +161,30 @@ function ProductPage() {
     }
 
     window.open(`https://wa.me/?text=${encodedMessage}`, "_blank");
+  };
+
+  const handleCopyShareLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Link copied");
+    } catch {
+      toast.error("Could not copy link");
+    }
+  };
+
+  const handleNativeShare = async () => {
+    if (!navigator.share) return handleCopyShareLink();
+
+    try {
+      await navigator.share({
+        title: product.title,
+        text: shareText,
+        url: shareUrl,
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      await handleCopyShareLink();
+    }
   };
 
   const handleShowOrderConfirmation = () => {
@@ -256,7 +323,7 @@ function ProductPage() {
                 <Button variant="hero" size="lg" className="w-full" onClick={handleContactSeller}><MessageCircle /> Contact seller</Button>
                 <div className="grid grid-cols-2 gap-2 pt-1">
                   <Button variant="ghost" onClick={handleSave}><Heart className={isFav ? "fill-destructive text-destructive" : ""} /> {isFav ? "Saved" : "Save"}</Button>
-                  <Button variant="ghost" onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied"); }}><Share2 /> Share</Button>
+                  <Button variant="ghost" onClick={handleNativeShare}><Share2 /> Share</Button>
                 </div>
               </div>
 

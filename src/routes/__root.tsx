@@ -13,6 +13,7 @@ import {
 
 import appCss from "../styles.css?url";
 import logoPng from "@/assets/logo.png";
+import { SITE_URL, toAbsoluteUrl } from "@/lib/site";
 
 function NotFoundComponent() {
   return (
@@ -76,19 +77,28 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Purana Bazaar — Pakistan's Premium Preloved Marketplace" },
+      { name: "description", content: "Buy and sell preloved mobiles, cars, bikes, furniture and more across Pakistan." },
+      { name: "author", content: "Purana Bazaar" },
+      { property: "og:title", content: "Purana Bazaar — Pakistan's Premium Preloved Marketplace" },
+      { property: "og:description", content: "Buy and sell preloved items across Pakistan with verified sellers." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { property: "og:url", content: SITE_URL },
+      { property: "og:image", content: toAbsoluteUrl(logoPng) },
+      { property: "og:site_name", content: "Purana Bazaar" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Purana Bazaar — Pakistan's Premium Preloved Marketplace" },
+      { name: "twitter:description", content: "Buy and sell preloved items across Pakistan with verified sellers." },
+      { name: "twitter:image", content: toAbsoluteUrl(logoPng) },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
+      },
+      {
+        rel: "canonical",
+        href: SITE_URL,
       },
       {
         rel: "icon",
