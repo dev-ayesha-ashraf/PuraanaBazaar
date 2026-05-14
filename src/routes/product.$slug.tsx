@@ -329,7 +329,7 @@ function ProductPage() {
                         disabled
                         className="h-10 rounded-lg border text-sm border-border text-muted-foreground cursor-not-allowed opacity-70"
                       >
-                        Online (Temporarily disabled)
+                        Online
                       </button>
                     </div>
                     <Button disabled={placingOrder} onClick={handleShowOrderConfirmation}>{placingOrder ? "Placing order..." : "Place order"}</Button>
