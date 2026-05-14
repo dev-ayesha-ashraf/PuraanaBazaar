@@ -3,15 +3,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { categories } from "@/lib/data";
 import { useQuery } from "@tanstack/react-query";
-import { fetchListingCategoryCounts } from "@/lib/listings";
-
-function stableListingCount(slug: string) {
-  let hash = 0;
-  for (let i = 0; i < slug.length; i++) {
-    hash = (hash * 31 + slug.charCodeAt(i)) | 0;
-  }
-  return 1000 + (Math.abs(hash) % 9000);
-}
+import { fetchActiveCategories, fetchListingCategoryCounts } from "@/lib/listings";
+import { LayoutGrid } from "lucide-react";
 
 export const Route = createFileRoute("/categories")({
   head: () => ({ meta: [{ title: "Categories — Purana Bazaar" }] }),
@@ -24,7 +17,23 @@ function Categories() {
     queryFn: fetchListingCategoryCounts,
   });
 
-  const visibleCategories = categories.filter((category) => (categoryCounts.get(category.slug) ?? 0) > 0);
+  const { data: dbCategories = [] } = useQuery({
+    queryKey: ["active-categories"],
+    queryFn: fetchActiveCategories,
+  });
+
+  const categoryMeta = dbCategories.length
+    ? dbCategories
+    : categories.map((category) => ({ slug: category.slug, name: category.name }));
+
+  const iconBySlug = new Map(categories.map((category) => [category.slug, category.icon]));
+
+  const visibleCategories = categoryMeta
+    .filter((category) => (categoryCounts.get(category.slug) ?? 0) > 0)
+    .map((category) => ({
+      ...category,
+      icon: iconBySlug.get(category.slug) ?? LayoutGrid,
+    }));
 
   return (
     <div className="min-h-screen">
@@ -44,7 +53,7 @@ function Categories() {
                 </div>
               </div>
               <div className="font-serif text-xl text-primary">{c.name}</div>
-              <div className="text-xs text-muted-foreground mt-1">{stableListingCount(c.slug)} listings</div>
+              <div className="text-xs text-muted-foreground mt-1">{(categoryCounts.get(c.slug) ?? 0).toLocaleString("en-PK")} listings</div>
             </Link>
           ))}
         </div>

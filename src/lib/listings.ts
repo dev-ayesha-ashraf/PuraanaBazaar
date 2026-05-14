@@ -126,6 +126,17 @@ export async function fetchListingCategoryCounts() {
   return counts;
 }
 
+export async function fetchActiveCategories() {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("slug,name")
+    .eq("is_active", true)
+    .order("name", { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function fetchListing(id: string): Promise<Listing | null> {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
   const query = supabase.from("listings").select("*").limit(1);

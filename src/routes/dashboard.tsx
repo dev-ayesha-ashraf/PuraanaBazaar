@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Eye, Heart, LayoutGrid, List, ListChecks, LogOut, ShieldCheck, Star, Truck, UserRoundCog } from "lucide-react";
+import { Eye, Heart, LayoutGrid, List, ListChecks, LogOut, Plus, ShieldCheck, Star, Truck, UserRoundCog } from "lucide-react";
 import { formatPKR, timeAgo, type Listing } from "@/lib/data";
 import { isVideoUrl } from "@/lib/media";
 import { useAuth } from "@/hooks/use-auth";
@@ -97,13 +97,13 @@ function Dashboard() {
               </div>
             </div>
           </div>
-          <nav className="mt-2 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-1 gap-1.5">
+          <nav className="mt-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-1 gap-1.5">
             <NavBtn active={tab === "listings"} onClick={() => setTab("listings")} icon={ListChecks}>My listings</NavBtn>
             <NavBtn active={tab === "favorites"} onClick={() => setTab("favorites")} icon={Heart}>Favorites</NavBtn>
             <NavBtn active={tab === "orders"} onClick={() => setTab("orders")} icon={Truck}>Orders</NavBtn>
             {isAdmin && <NavBtn active={tab === "admin"} onClick={() => setTab("admin")} icon={UserRoundCog}>Admin panel</NavBtn>}
-            <button onClick={handleSignOut} className="w-full col-span-2 sm:col-span-3 xl:col-span-1 mt-0.5 xl:mt-2 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition hover:bg-accent text-foreground/80">
-              <LogOut className="h-4 w-4" /> Logout
+            <button onClick={handleSignOut} className="w-full mt-0.5 xl:mt-2 flex items-center gap-3 px-3 py-3 rounded-xl text-sm transition hover:bg-accent text-foreground/80">
+              <LogOut className="h-4 w-4 shrink-0" /> <span className="truncate">Logout</span>
             </button>
           </nav>
         </aside>
@@ -136,8 +136,8 @@ function Dashboard() {
 
 function NavBtn({ icon: Icon, children, active, onClick }: { icon: any; children: React.ReactNode; active: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition ${active ? "bg-primary text-primary-foreground" : "hover:bg-accent text-foreground/80"}`}>
-      <Icon className="h-4 w-4 shrink-0" /> <span className="truncate">{children}</span>
+    <button onClick={onClick} className={`w-full flex items-center gap-2.5 px-3 py-3 rounded-xl text-sm transition ${active ? "bg-primary text-primary-foreground" : "hover:bg-accent text-foreground/80"}`}>
+      <Icon className="h-4 w-4 shrink-0" /> <span className="truncate text-left">{children}</span>
     </button>
   );
 }
@@ -230,51 +230,99 @@ function MyListings({ userId, isBlocked }: { userId: string; isBlocked: boolean 
           ) : visibleListings.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground">No {listingTab} listings yet.</div>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-secondary text-xs uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="text-left px-4 py-3">Item</th>
-                  <th className="text-left px-4 py-3 hidden sm:table-cell">Price</th>
-                  <th className="text-left px-4 py-3 hidden md:table-cell">Posted</th>
-                  <th className="text-left px-4 py-3">Status</th>
-                  <th className="text-right px-4 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+            <>
+              <div className="sm:hidden divide-y divide-border">
                 {visibleListings.map((p) => (
-                  <tr key={p.id} className="border-t border-border hover:bg-accent/40 transition">
-                    <td className="px-4 py-3">
-                      <Link to="/product/$slug" params={{ slug: p.slug }} className="flex items-center gap-3">
+                  <details key={p.id} className="group">
+                    <summary className="list-none cursor-pointer p-4">
+                      <div className="flex items-center gap-3 min-w-0">
                         {isVideoUrl(p.images[0] || "") ? (
-                          <video src={p.images[0]} className="h-12 w-12 rounded-lg object-contain bg-black/5" muted playsInline preload="metadata" />
+                          <video src={p.images[0]} className="h-12 w-12 rounded-lg object-contain bg-black/5 shrink-0" muted playsInline preload="metadata" />
                         ) : (
-                          <img src={p.images[0] || "https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?w=400"} alt="" className="h-12 w-12 rounded-lg object-contain" />
+                          <img src={p.images[0] || "https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?w=400"} alt="" className="h-12 w-12 rounded-lg object-contain shrink-0" />
                         )}
-                        <span className="font-medium line-clamp-1">{p.title}</span>
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 hidden sm:table-cell font-medium">{formatPKR(p.price)}</td>
-                    <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">{timeAgo(p.created_at)}</td>
-                    <td className="px-4 py-3">
-                      {p.status === "sold" ? (
-                        <span className="px-2.5 py-1 rounded-full bg-primary/15 text-primary text-xs font-semibold">SOLD</span>
-                      ) : (
-                        <span className="px-2.5 py-1 rounded-full bg-success/15 text-success text-xs">{p.status}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right space-x-2">
-                      {p.status === "sold" ? (
-                        <Button variant="outline" size="sm" disabled={isBlocked || markUnsold.isPending} onClick={() => markUnsold.mutate(p.id)}>Mark unsold</Button>
-                      ) : (
-                        <Button variant="outline" size="sm" disabled={isBlocked || markSold.isPending} onClick={() => markSold.mutate(p.id)}>Mark sold</Button>
-                      )}
-                      <Button variant="outline" size="sm" asChild><Link to="/edit/$slug" params={{ slug: p.slug }}>Edit</Link></Button>
-                      <Button variant="ghost" size="sm" disabled={del.isPending} onClick={() => del.mutate(p.id)}>Delete</Button>
-                    </td>
-                  </tr>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium line-clamp-1">{p.title}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{formatPKR(p.price)} · {timeAgo(p.created_at)}</p>
+                        </div>
+                        <span className="text-xs text-primary font-medium">Details</span>
+                      </div>
+                    </summary>
+
+                    <div className="px-4 pb-4 space-y-3">
+                      <div>
+                        {p.status === "sold" ? (
+                          <span className="px-2.5 py-1 rounded-full bg-primary/15 text-primary text-xs font-semibold">SOLD</span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-full bg-success/15 text-success text-xs">{p.status}</span>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-2">
+                        <Button variant="outline" size="sm" className="w-full" asChild><Link to="/product/$slug" params={{ slug: p.slug }}>View listing</Link></Button>
+                        {p.status === "sold" ? (
+                          <Button variant="outline" size="sm" className="w-full" disabled={isBlocked || markUnsold.isPending} onClick={() => markUnsold.mutate(p.id)}>Mark unsold</Button>
+                        ) : (
+                          <Button variant="outline" size="sm" className="w-full" disabled={isBlocked || markSold.isPending} onClick={() => markSold.mutate(p.id)}>Mark sold</Button>
+                        )}
+                        <Button variant="outline" size="sm" className="w-full" asChild><Link to="/edit/$slug" params={{ slug: p.slug }}>Edit</Link></Button>
+                        <Button variant="ghost" size="sm" className="w-full" disabled={del.isPending} onClick={() => del.mutate(p.id)}>Delete</Button>
+                      </div>
+                    </div>
+                  </details>
                 ))}
-              </tbody>
-            </table>
+              </div>
+
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-sm min-w-[760px]">
+                  <thead className="bg-secondary text-xs uppercase tracking-wider text-muted-foreground">
+                    <tr>
+                      <th className="text-left px-4 py-3">Item</th>
+                      <th className="text-left px-4 py-3 hidden sm:table-cell">Price</th>
+                      <th className="text-left px-4 py-3 hidden md:table-cell">Posted</th>
+                      <th className="text-left px-4 py-3">Status</th>
+                      <th className="text-right px-4 py-3">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleListings.map((p) => (
+                      <tr key={p.id} className="border-t border-border hover:bg-accent/40 transition">
+                        <td className="px-4 py-3">
+                          <Link to="/product/$slug" params={{ slug: p.slug }} className="flex items-center gap-3">
+                            {isVideoUrl(p.images[0] || "") ? (
+                              <video src={p.images[0]} className="h-12 w-12 rounded-lg object-contain bg-black/5" muted playsInline preload="metadata" />
+                            ) : (
+                              <img src={p.images[0] || "https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?w=400"} alt="" className="h-12 w-12 rounded-lg object-contain" />
+                            )}
+                            <span className="font-medium line-clamp-1">{p.title}</span>
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 hidden sm:table-cell font-medium">{formatPKR(p.price)}</td>
+                        <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">{timeAgo(p.created_at)}</td>
+                        <td className="px-4 py-3">
+                          {p.status === "sold" ? (
+                            <span className="px-2.5 py-1 rounded-full bg-primary/15 text-primary text-xs font-semibold">SOLD</span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-full bg-success/15 text-success text-xs">{p.status}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex flex-wrap justify-end gap-2">
+                            {p.status === "sold" ? (
+                              <Button variant="outline" size="sm" disabled={isBlocked || markUnsold.isPending} onClick={() => markUnsold.mutate(p.id)}>Mark unsold</Button>
+                            ) : (
+                              <Button variant="outline" size="sm" disabled={isBlocked || markSold.isPending} onClick={() => markSold.mutate(p.id)}>Mark sold</Button>
+                            )}
+                            <Button variant="outline" size="sm" asChild><Link to="/edit/$slug" params={{ slug: p.slug }}>Edit</Link></Button>
+                            <Button variant="ghost" size="sm" disabled={del.isPending} onClick={() => del.mutate(p.id)}>Delete</Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -303,11 +351,11 @@ function Favorites({ view, onViewChange }: { view: "grid" | "list"; onViewChange
     <div className="space-y-4">
       <div className="flex items-center justify-end">
         <div className="inline-flex rounded-xl border border-border bg-card p-1 shadow-soft">
-          <button type="button" onClick={() => onViewChange("grid")} className={`inline-flex h-10 w-10 items-center justify-center rounded-lg transition ${view === "grid" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:text-primary"}`}>
-            <LayoutGrid className="h-4 w-4" />
+          <button type="button" onClick={() => onViewChange("grid")} className={`inline-flex h-11 w-11 items-center justify-center rounded-lg transition ${view === "grid" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:text-primary"}`}>
+            <LayoutGrid className="h-5 w-5" />
           </button>
-          <button type="button" onClick={() => onViewChange("list")} className={`inline-flex h-10 w-10 items-center justify-center rounded-lg transition ${view === "list" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:text-primary"}`}>
-            <List className="h-4 w-4" />
+          <button type="button" onClick={() => onViewChange("list")} className={`inline-flex h-11 w-11 items-center justify-center rounded-lg transition ${view === "list" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:text-primary"}`}>
+            <List className="h-5 w-5" />
           </button>
         </div>
       </div>
@@ -491,7 +539,7 @@ function AdminPanel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("listings")
-        .select("id,title,category,price,status,seller_name,created_at")
+        .select("id,title,category,price,status,seller_name,created_at,featured")
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
@@ -576,6 +624,19 @@ function AdminPanel() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const toggleFeatured = useMutation({
+    mutationFn: async ({ id, featured }: { id: string; featured: boolean }) => {
+      const { error } = await supabase.from("listings").update({ featured: !featured }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-listings"] });
+      qc.invalidateQueries({ queryKey: ["featured"] });
+      toast.success("Featured status updated");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const toggleBlock = useMutation({
     mutationFn: async ({ id, blocked }: { id: string; blocked: boolean }) => {
       const { error } = await supabase.from("profiles").update({ is_blocked: !blocked }).eq("id", id);
@@ -617,14 +678,21 @@ function AdminPanel() {
       <div className="grid lg:grid-cols-2 gap-6">
         <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
           <h3 className="font-serif text-2xl text-primary">Category management</h3>
-          <div className="mt-4 flex flex-col sm:flex-row gap-2">
-            <input
-              className="h-10 flex-1 rounded-lg border border-border bg-background px-3 text-sm"
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-              placeholder="Add category name"
-            />
-            <Button size="sm" className="sm:w-auto" onClick={() => createCategory.mutate(newCategory)} disabled={!newCategory.trim() || createCategory.isPending}>Create</Button>
+          <div className="mt-4 rounded-xl border border-border/80 bg-background/60 p-3 sm:p-3.5 space-y-2.5">
+            <label htmlFor="new-category" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">New category</label>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                id="new-category"
+                className="h-[54px] min-h-[54px] sm:h-11 sm:min-h-11 flex-1 rounded-xl border-2 border-border bg-background px-4 text-base sm:text-sm leading-6 appearance-none transition focus:border-primary focus:ring-2 focus:ring-primary/25 focus:outline-none"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                placeholder="e.g. Home appliances"
+              />
+              <Button size="sm" className="h-12 sm:h-11 sm:w-auto w-full" onClick={() => createCategory.mutate(newCategory)} disabled={!newCategory.trim() || createCategory.isPending}>
+                <Plus className="h-4 w-4" /> Create
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Use a short, clear name. Slug is generated automatically.</p>
           </div>
           <div className="mt-4 space-y-2 max-h-64 overflow-auto">
             {categories.map((c) => (
@@ -663,7 +731,12 @@ function AdminPanel() {
                 <div className="font-medium">{l.title}</div>
                 <div className="text-xs text-muted-foreground break-words">{l.category} · {formatPKR(Number(l.price))} · {l.status} · {l.seller_name}</div>
               </div>
-              <Button size="sm" className="w-full md:w-auto" variant="outline" disabled={l.status === "sold" || markSold.isPending} onClick={() => markSold.mutate(l.id)}>Mark sold</Button>
+              <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                <Button size="sm" className="w-full md:w-auto" variant={l.featured ? "default" : "outline"} disabled={toggleFeatured.isPending} onClick={() => toggleFeatured.mutate({ id: l.id, featured: !!l.featured })}>
+                  {l.featured ? "Unfeature" : "Feature"}
+                </Button>
+                <Button size="sm" className="w-full md:w-auto" variant="outline" disabled={l.status === "sold" || markSold.isPending} onClick={() => markSold.mutate(l.id)}>Mark sold</Button>
+              </div>
             </div>
           ))}
         </div>

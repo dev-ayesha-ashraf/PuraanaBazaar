@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
-import { Mail, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, Mail, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import heroImg from "@/assets/hero.jpg";
@@ -221,10 +221,30 @@ export function AuthShell({ mode }: { mode: "login" | "signup" }) {
 }
 
 function Field({ label, ...rest }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPasswordField = rest.type === "password";
+
   return (
     <label className="block">
       <span className="text-xs font-medium text-foreground/80">{label}</span>
-      <input {...rest} className="mt-1.5 w-full h-11 px-4 rounded-xl bg-card border border-border focus:border-primary outline-none transition text-sm" />
+      <div className="relative mt-1.5">
+        <input
+          {...rest}
+          type={isPasswordField && showPassword ? "text" : rest.type}
+          className={`w-full h-11 rounded-xl bg-card border border-border focus:border-primary outline-none transition text-sm ${isPasswordField ? "pl-4 pr-11" : "px-4"}`}
+        />
+        {isPasswordField && (
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            disabled={rest.disabled}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            className="absolute inset-y-0 right-0 w-11 grid place-items-center text-muted-foreground hover:text-primary transition disabled:opacity-60"
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        )}
+      </div>
     </label>
   );
 }

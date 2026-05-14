@@ -159,220 +159,115 @@
   @keyframes fade-up { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: none } }
   .animate-fade-up { animation: fade-up .7s ease-out both; }
 
-  .app-splash {
+  @keyframes pb-intro {
+    0% { opacity: 0; transform: translateY(10px) scale(0.97); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes pb-breathe {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-2px) scale(1.02); }
+  }
+
+  .pb-preloader {
     position: fixed;
     inset: 0;
     z-index: 9999;
-    isolation: isolate;
     overflow: hidden;
-    background: oklch(0.22 0.015 252);
-    transition: opacity 0.92s cubic-bezier(.2,.82,.2,1), visibility 0.92s ease;
-  }
-
-  .app-splash::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    bottom: 15%;
-    width: min(420px, 70vw);
-    height: 28px;
-    transform: translateX(-50%);
-    border-radius: 999px;
-    background: color-mix(in oklab, black 46%, transparent);
-    filter: blur(10px);
-    opacity: 0.55;
-  }
-
-  .app-splash--hide {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-  }
-
-  .app-splash__stage {
-    position: absolute;
-    inset: 0;
     display: grid;
     place-items: center;
+    background:
+      radial-gradient(
+        950px 560px at 18% -10%,
+        color-mix(in oklab, var(--primary) 52%, black 48%) 0%,
+        transparent 58%
+      ),
+      radial-gradient(
+        720px 440px at 88% 108%,
+        color-mix(in oklab, var(--gold) 14%, transparent) 0%,
+        transparent 62%
+      ),
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--primary) 30%, black 70%) 0%,
+        color-mix(in oklab, var(--primary) 46%, black 54%) 56%,
+        color-mix(in oklab, var(--primary) 34%, black 66%) 100%
+      );
   }
 
-  .app-splash__bag-drop {
+  .pb-preloader::before {
+    content: "";
     position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -220%);
-    animation: splash-bag-drop 1.45s cubic-bezier(.16,.84,.24,1.02) forwards;
-    will-change: transform;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 36%, rgba(1, 8, 26, 0.38) 100%);
   }
 
-  .app-splash__bag {
+  .pb-preloader__content {
     position: relative;
-    width: clamp(210px, 42vw, 300px);
-    height: clamp(230px, 48vw, 330px);
-    transform-origin: top center;
-    animation: splash-bag-swing-settle 3.5s cubic-bezier(.22,.68,.2,1) 1.3s forwards;
-    will-change: transform;
-  }
-
-  .app-splash__bag-handle {
-    position: absolute;
-    left: 50%;
-    top: -34px;
-    width: 86px;
-    height: 50px;
-    transform: translateX(-50%);
-    border: 8px solid oklch(0.31 0.06 160);
-    border-bottom: 0;
-    border-radius: 50px 50px 0 0;
-    background: transparent;
-  }
-
-  .app-splash__bag-opening {
-    position: absolute;
-    left: 50%;
-    top: 8px;
-    width: 90%;
-    height: 16px;
-    transform: translateX(-50%);
-    border-radius: 999px;
-    background: oklch(0.52 0.08 160);
-    z-index: 3;
-    box-shadow: inset 0 -4px 0 color-mix(in oklab, var(--primary) 30%, transparent);
-  }
-
-  .app-splash__bag-body {
-    position: absolute;
-    inset: 16px 0 0 0;
-    border-radius: 26px;
-    background: oklch(0.78 0.1 84);
-    border: 6px solid oklch(0.31 0.06 160);
-    box-shadow: 0 14px 0 color-mix(in oklab, oklch(0.31 0.06 160) 45%, transparent);
+    z-index: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 1.2rem 1rem 1rem;
+    gap: 0.6rem;
+    text-align: center;
+    animation: pb-intro 0.8s ease-out both;
   }
 
-  .app-splash__bag-logo {
-    width: 52px;
-    height: 52px;
+  .pb-preloader__icon {
+    width: min(26vw, 118px);
+    height: auto;
     object-fit: contain;
-    filter: drop-shadow(0 2px 0 color-mix(in oklab, var(--primary) 35%, transparent));
+    mix-blend-mode: darken;
+    filter: drop-shadow(0 8px 20px rgba(0, 8, 28, 0.55));
+    animation: pb-breathe 1.8s ease-in-out infinite;
   }
 
-  .app-splash__bag-name {
-    margin-top: 0.35rem;
-    font-family: var(--font-serif);
-    font-size: 1.15rem;
+  .pb-preloader__wordmark {
     line-height: 1;
-    color: oklch(0.25 0.04 160);
-    letter-spacing: 0.03em;
+    text-transform: lowercase;
+    letter-spacing: -0.01em;
+    animation: pb-breathe 2.1s ease-in-out infinite;
   }
 
-  .app-splash__bag-sub {
-    margin-top: 0.2rem;
-    font-size: 10px;
-    letter-spacing: 0.14em;
+  .pb-preloader__wordmark-top {
+    display: block;
+    color: #f5f8ff;
+    font-size: clamp(2rem, 7vw, 2.75rem);
+    font-weight: 500;
+  }
+
+  .pb-preloader__wordmark-bottom {
+    display: block;
+    color: #7eb283;
+    font-size: clamp(2rem, 7vw, 2.75rem);
+    font-weight: 500;
+    margin-top: 0.06em;
+  }
+
+  .pb-preloader__tagline {
+    margin-top: 0.35rem;
+    color: rgba(235, 241, 255, 0.88);
+    font-size: clamp(0.56rem, 1.9vw, 0.72rem);
+    letter-spacing: 0.24em;
     text-transform: uppercase;
-    color: color-mix(in oklab, oklch(0.25 0.04 160) 80%, white 20%);
+    font-weight: 500;
   }
 
-  .app-splash__falling {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 4;
-  }
-
-  .app-splash__fall-item {
-    position: absolute;
-    left: var(--x);
-    top: -14%;
-    width: 30px;
-    height: 34px;
-    border-radius: 8px 8px 10px 10px;
-    border: 2px solid oklch(0.31 0.06 160);
-    box-shadow: 0 4px 0 color-mix(in oklab, oklch(0.31 0.06 160) 28%, transparent);
-    animation: splash-fall 1.32s cubic-bezier(.2,.18,.35,1) forwards;
-    animation-delay: var(--d);
-    will-change: transform, top, opacity;
-  }
-
-  .app-splash__fall-item::before {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: -12px;
-    width: 14px;
-    height: 11px;
-    transform: translateX(-50%);
-    border: 2px solid oklch(0.31 0.06 160);
-    border-bottom: 0;
-    border-radius: 10px 10px 0 0;
-    background: transparent;
-  }
-
-  .app-splash__fall-item::after {
-    content: "PB";
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    font-size: 9px;
-    font-weight: 700;
-    color: oklch(0.24 0.04 160);
-    letter-spacing: 0.05em;
-  }
-
-  .app-splash__fall-item--a { background: oklch(0.92 0.045 84); }
-  .app-splash__fall-item--b { background: oklch(0.88 0.07 160); }
-  .app-splash__fall-item--c { background: oklch(0.95 0.03 95); }
-
-  @keyframes splash-bag-drop {
-    0% { transform: translate(-50%, -220%) rotate(-6deg); }
-    70% { transform: translate(-50%, -47.5%) rotate(3.5deg); }
-    86% { transform: translate(-50%, -50.4%) rotate(-1.8deg); }
-    100% { transform: translate(-50%, -50%) rotate(0deg); }
-  }
-
-  @keyframes splash-bag-swing-settle {
-    0% { transform: rotate(3.2deg); }
-    18% { transform: rotate(-3.4deg); }
-    36% { transform: rotate(2.6deg); }
-    54% { transform: rotate(-2deg); }
-    72% { transform: rotate(1.2deg); }
-    100% { transform: rotate(0deg); }
-  }
-
-  @keyframes splash-fall {
-    0% { top: -14%; opacity: 0; transform: translateX(-50%) scale(0.94); }
-    14% { opacity: 1; }
-    72% { top: 42.4%; opacity: 1; transform: translateX(-50%) scale(1); }
-    86% { top: 45.2%; opacity: 0.7; transform: translateX(-50%) scale(0.74); }
-    100% { top: 47%; opacity: 0; transform: translateX(-50%) scale(0.5); }
-  }
-
-  @media (max-width: 640px) {
-    .app-splash__bag {
-      width: clamp(186px, 62vw, 250px);
-      height: clamp(205px, 68vw, 290px);
+  @media (max-width: 480px) {
+    .pb-preloader__content {
+      gap: 0.52rem;
     }
 
-    .app-splash__bag-handle {
-      width: 72px;
-      height: 42px;
-      top: -30px;
+    .pb-preloader__icon {
+      width: min(30vw, 104px);
     }
 
-    .app-splash__fall-item {
-      width: 28px;
-      height: 32px;
-    }
-
-    .app-splash__bag-logo {
-      width: 46px;
-      height: 46px;
+    .pb-preloader__tagline {
+      letter-spacing: 0.2em;
+      max-width: 88vw;
+      line-height: 1.35;
     }
   }
 }

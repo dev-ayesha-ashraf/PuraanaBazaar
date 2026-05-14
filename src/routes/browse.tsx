@@ -3,7 +3,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ProductCard } from "@/components/ProductCard";
 import { categories, cities, conditions } from "@/lib/data";
-import { fetchListingCategoryCounts, fetchSoldListings, searchListings } from "@/lib/listings";
+import { fetchActiveCategories, fetchListingCategoryCounts, fetchSoldListings, searchListings } from "@/lib/listings";
 import { ArrowDownAZ, ArrowDownWideNarrow, ArrowUpDown, LayoutGrid, List, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,11 @@ function Browse() {
     queryFn: fetchListingCategoryCounts,
   });
 
+  const { data: dbCategories = [] } = useQuery({
+    queryKey: ["active-categories"],
+    queryFn: fetchActiveCategories,
+  });
+
   useEffect(() => {
     setCat(searchParams.category || "all");
     setQ(searchParams.q || "");
@@ -74,7 +79,18 @@ function Browse() {
     queryFn: () => searchListings({ category: cat, q, city: city || undefined }),
   });
 
-  const visibleCategories = categories.filter((category) => (categoryCounts.get(category.slug) ?? 0) > 0);
+  const categoryMeta = dbCategories.length
+    ? dbCategories
+    : categories.map((category) => ({ slug: category.slug, name: category.name }));
+
+  const iconBySlug = new Map(categories.map((category) => [category.slug, category.icon]));
+
+  const visibleCategories = categoryMeta
+    .filter((category) => (categoryCounts.get(category.slug) ?? 0) > 0)
+    .map((category) => ({
+      ...category,
+      icon: iconBySlug.get(category.slug) ?? LayoutGrid,
+    }));
 
   const filtered = listings.filter((p) => {
     if (condFilter.size > 0 && !condFilter.has(p.condition)) return false;

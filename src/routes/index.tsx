@@ -4,7 +4,7 @@ import { Footer } from "@/components/Footer";
 import { ProductCard } from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { categories, formatPKR } from "@/lib/data";
-import { fetchListingCategoryCounts, fetchListings } from "@/lib/listings";
+import { fetchActiveCategories, fetchListingCategoryCounts, fetchListings } from "@/lib/listings";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import heroImg from "@/assets/hero.jpg";
@@ -32,16 +32,31 @@ function Index() {
     queryKey: ["listing-category-counts"],
     queryFn: fetchListingCategoryCounts,
   });
+  const { data: dbCategories = [] } = useQuery({
+    queryKey: ["active-categories"],
+    queryFn: fetchActiveCategories,
+  });
   const [featuredView, setFeaturedView] = useState<"grid" | "list">("grid");
   const [recentView, setRecentView] = useState<"grid" | "list">("grid");
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
 
-  const visibleCategories = categories.filter((category) => (categoryCounts.get(category.slug) ?? 0) > 0);
+  const categoryMeta = dbCategories.length
+    ? dbCategories
+    : categories.map((category) => ({ slug: category.slug, name: category.name }));
+
+  const iconBySlug = new Map(categories.map((category) => [category.slug, category.icon]));
+
+  const visibleCategories = categoryMeta
+    .filter((category) => (categoryCounts.get(category.slug) ?? 0) > 0)
+    .map((category) => ({
+      ...category,
+      icon: iconBySlug.get(category.slug) ?? LayoutGrid,
+    }));
   const totalActiveListings = Array.from(categoryCounts.values()).reduce((sum, count) => sum + count, 0);
   const topCategoryEntry = Array.from(categoryCounts.entries()).sort((a, b) => b[1] - a[1])[0];
   const topCategoryCount = topCategoryEntry?.[1] ?? 0;
-  const topCategoryName = categories.find((category) => category.slug === topCategoryEntry?.[0])?.name ?? "No category data";
+  const topCategoryName = categoryMeta.find((category) => category.slug === topCategoryEntry?.[0])?.name ?? topCategoryEntry?.[0] ?? "No category data";
   const topCategoryShare = totalActiveListings > 0 ? Math.round((topCategoryCount / totalActiveListings) * 100) : 0;
   const topRecent = recent[0];
 
