@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { categories, cities, conditions } from "@/lib/data";
+import { isVideoFile, isVideoUrl } from "@/lib/media";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 
@@ -101,7 +102,7 @@ function Sell() {
     if (profile?.is_blocked) { toast.error("Your account is blocked. You cannot post listings."); return; }
     setSubmitting(true);
     try {
-      // Upload images
+      // Upload media files (images/videos)
       const urls: string[] = [];
       for (const file of files) {
         const ext = file.name.split(".").pop() || "jpg";
@@ -197,15 +198,19 @@ function Sell() {
 
         <form onSubmit={submit} className="mt-12 space-y-6 rounded-3xl bg-card border border-border p-6 md:p-10 shadow-soft">
           <div>
-            <Label>Photos · up to 12</Label>
+            <Label>Photos and videos · up to 12</Label>
             <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
               <label className="aspect-square rounded-2xl border-2 border-dashed border-border hover:border-primary hover:bg-accent transition flex flex-col items-center justify-center gap-1 text-muted-foreground cursor-pointer">
                 <Camera className="h-5 w-5" /><span className="text-xs">Add</span>
-                <input type="file" accept="image/*" multiple className="hidden" onChange={onPickFiles} />
+                <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={onPickFiles} />
               </label>
               {previews.map((src, i) => (
                 <div key={i} className="relative aspect-square rounded-2xl overflow-hidden bg-secondary">
-                  <img src={src} alt="" className="w-full h-full object-cover" />
+                  {isVideoUrl(src) || (files[i] && isVideoFile(files[i])) ? (
+                    <video src={src} className="w-full h-full object-contain bg-black/5" muted playsInline preload="metadata" />
+                  ) : (
+                    <img src={src} alt="" className="w-full h-full object-contain" />
+                  )}
                   <button type="button" onClick={() => removeFile(i)} className="absolute top-1 right-1 h-6 w-6 grid place-items-center rounded-full bg-card/90"><X className="h-3 w-3" /></button>
                 </div>
               ))}

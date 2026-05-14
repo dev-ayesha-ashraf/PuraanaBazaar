@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Heart, MapPin, ShieldCheck } from "lucide-react";
 import { formatPKR, timeAgo, type Listing } from "@/lib/data";
+import { isVideoUrl } from "@/lib/media";
 import { useAuth } from "@/hooks/use-auth";
 import { useFavorite } from "@/hooks/use-favorites";
 import { toast } from "sonner";
@@ -26,7 +27,8 @@ export function ProductCard({ product, compact = false }: ProductCardProps) {
     await toggle();
   };
 
-  const img = product.images?.[0] || "https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?w=1200";
+  const media = product.images?.[0] || "https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?w=1200";
+  const isVideo = isVideoUrl(media);
 
   return (
     <Link
@@ -35,7 +37,11 @@ export function ProductCard({ product, compact = false }: ProductCardProps) {
       className={`group relative block rounded-2xl bg-card overflow-hidden border border-border/60 shadow-soft hover:shadow-elegant transition-all duration-500 hover:-translate-y-1 ${compact ? "flex hover:-translate-y-0" : ""}`}
     >
       <div className={`relative overflow-hidden bg-muted ${compact ? "aspect-square w-28 shrink-0 sm:w-36" : "aspect-[4/3]"}`}>
-        <img src={img} alt={product.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+        {isVideo ? (
+          <video src={media} className="h-full w-full object-contain bg-black/5" muted playsInline preload="metadata" />
+        ) : (
+          <img src={media} alt={product.title} loading="lazy" className="h-full w-full object-contain transition-transform duration-700 group-hover:scale-110" />
+        )}
         {product.status === "sold" && (
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10 pointer-events-none">
             <span className="px-4 py-1.5 text-sm uppercase tracking-widest rounded-full bg-destructive text-white font-bold shadow-lg">Sold</span>

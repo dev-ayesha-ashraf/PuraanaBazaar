@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { isVideoUrl } from "@/lib/media";
 
 export const Route = createFileRoute("/product/$slug")({
   head: ({ loaderData }) => ({
@@ -93,7 +94,7 @@ function ProductPage() {
 
   const avgRating = reviews.length ? (reviews.reduce((sum, item) => sum + item.rating, 0) / reviews.length).toFixed(1) : null;
 
-  const images = product.images?.length ? product.images : ["https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?w=1200"];
+  const mediaItems = product.images?.length ? product.images : ["https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?w=1200"];
 
   const handleSave = async () => {
     if (!user) { toast.info("Sign in to save items"); navigate({ to: "/login" }); return; }
@@ -191,13 +192,21 @@ function ProductPage() {
         <div className="grid lg:grid-cols-[1.4fr_1fr] gap-10">
           <div className="space-y-3">
             <div className="aspect-[4/3] rounded-3xl overflow-hidden bg-card shadow-elegant">
-              <img src={images[activeImg]} alt={product.title} className="w-full h-full object-cover" />
+              {isVideoUrl(mediaItems[activeImg]) ? (
+                <video src={mediaItems[activeImg]} className="w-full h-full object-contain bg-black/5" controls playsInline preload="metadata" />
+              ) : (
+                <img src={mediaItems[activeImg]} alt={product.title} className="w-full h-full object-contain" />
+              )}
             </div>
-            {images.length > 1 && (
+            {mediaItems.length > 1 && (
               <div className="grid grid-cols-5 gap-3">
-                {images.map((src: string, i: number) => (
+                {mediaItems.map((src: string, i: number) => (
                   <button key={i} onClick={() => setActiveImg(i)} className={`aspect-square rounded-xl overflow-hidden border-2 ${i === activeImg ? "border-primary" : "border-border"}`}>
-                    <img src={src} alt="" className="w-full h-full object-cover" />
+                    {isVideoUrl(src) ? (
+                      <video src={src} className="w-full h-full object-contain bg-black/5" muted playsInline preload="metadata" />
+                    ) : (
+                      <img src={src} alt="" className="w-full h-full object-contain" />
+                    )}
                   </button>
                 ))}
               </div>
@@ -317,10 +326,10 @@ function ProductPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setPaymentMethod("ONLINE")}
-                        className={`h-10 rounded-lg border text-sm ${paymentMethod === "ONLINE" ? "border-primary bg-primary/10 text-primary" : "border-border"}`}
+                        disabled
+                        className="h-10 rounded-lg border text-sm border-border text-muted-foreground cursor-not-allowed opacity-70"
                       >
-                        Online (Coming soon)
+                        Online (Temporarily disabled)
                       </button>
                     </div>
                     <Button disabled={placingOrder} onClick={handleShowOrderConfirmation}>{placingOrder ? "Placing order..." : "Place order"}</Button>

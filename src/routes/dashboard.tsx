@@ -4,6 +4,7 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Eye, Heart, LayoutGrid, List, ListChecks, LogOut, ShieldCheck, Star, Truck, UserRoundCog } from "lucide-react";
 import { formatPKR, timeAgo, type Listing } from "@/lib/data";
+import { isVideoUrl } from "@/lib/media";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchMyListings, fetchListing } from "@/lib/listings";
@@ -244,7 +245,11 @@ function MyListings({ userId, isBlocked }: { userId: string; isBlocked: boolean 
                   <tr key={p.id} className="border-t border-border hover:bg-accent/40 transition">
                     <td className="px-4 py-3">
                       <Link to="/product/$slug" params={{ slug: p.slug }} className="flex items-center gap-3">
-                        <img src={p.images[0] || "https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?w=400"} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                        {isVideoUrl(p.images[0] || "") ? (
+                          <video src={p.images[0]} className="h-12 w-12 rounded-lg object-contain bg-black/5" muted playsInline preload="metadata" />
+                        ) : (
+                          <img src={p.images[0] || "https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?w=400"} alt="" className="h-12 w-12 rounded-lg object-contain" />
+                        )}
                         <span className="font-medium line-clamp-1">{p.title}</span>
                       </Link>
                     </td>
