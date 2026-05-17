@@ -2,21 +2,21 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Eye, Heart, LayoutGrid, List, ListChecks, LogOut, Plus, ShieldCheck, Star, Truck, UserRoundCog } from "lucide-react";
+import { Eye, Heart, KeyRound, LayoutGrid, List, ListChecks, LogOut, Plus, ShieldCheck, Star, Truck, UserRound, UserRoundCog } from "lucide-react";
 import { formatPKR, timeAgo, type Listing } from "@/lib/data";
 import { isVideoUrl } from "@/lib/media";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchMyListings, fetchListing } from "@/lib/listings";
 import { supabase } from "@/integrations/supabase/client";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useFavoriteIds } from "@/hooks/use-favorites";
 import { ProductCard } from "@/components/ProductCard";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 
-type DashboardTab = "listings" | "favorites" | "orders" | "admin";
+type DashboardTab = "listings" | "favorites" | "orders" | "admin" | "profile";
 type OrderStatus = "pending_seller_confirmation" | "confirmed" | "rejected" | "in_delivery" | "delivered" | "cancelled";
 
 type DbOrder = {
@@ -101,6 +101,7 @@ function Dashboard() {
             <NavBtn active={tab === "listings"} onClick={() => setTab("listings")} icon={ListChecks}>My listings</NavBtn>
             <NavBtn active={tab === "favorites"} onClick={() => setTab("favorites")} icon={Heart}>Favorites</NavBtn>
             <NavBtn active={tab === "orders"} onClick={() => setTab("orders")} icon={Truck}>Orders</NavBtn>
+            <NavBtn active={tab === "profile"} onClick={() => setTab("profile")} icon={UserRound}>My profile</NavBtn>
             {isAdmin && <NavBtn active={tab === "admin"} onClick={() => setTab("admin")} icon={UserRoundCog}>Admin panel</NavBtn>}
             <button onClick={handleSignOut} className="w-full mt-0.5 xl:mt-2 flex items-center gap-3 px-3 py-3 rounded-xl text-sm transition hover:bg-accent text-foreground/80">
               <LogOut className="h-4 w-4 shrink-0" /> <span className="truncate">Logout</span>
@@ -126,6 +127,7 @@ function Dashboard() {
           {tab === "listings" && user && <MyListings userId={user.id} isBlocked={!!profile?.is_blocked} />}
           {tab === "favorites" && <Favorites view={favoritesView} onViewChange={setFavoritesView} />}
           {tab === "orders" && user && <OrdersTab userId={user.id} />}
+          {tab === "profile" && user && <ProfileTab userId={user.id} userEmail={user.email ?? ""} />}
           {tab === "admin" && isAdmin && <AdminPanel />}
         </main>
       </div>
@@ -139,6 +141,205 @@ function NavBtn({ icon: Icon, children, active, onClick }: { icon: any; children
     <button onClick={onClick} className={`w-full flex items-center gap-2.5 px-3 py-3 rounded-xl text-sm transition ${active ? "bg-primary text-primary-foreground" : "hover:bg-accent text-foreground/80"}`}>
       <Icon className="h-4 w-4 shrink-0" /> <span className="truncate text-left">{children}</span>
     </button>
+  );
+}
+
+function ProfileTab({ userId, userEmail }: { userId: string; userEmail: string }) {
+  const qc = useQueryClient();
+
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ["profile-tab", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("full_name, phone")
+        .eq("id", userId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingInfo, setSavingInfo] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.full_name ?? "");
+      setPhone(profile.phone ?? "");
+    }
+  }, [profile]);
+
+  const handleUpdateInfo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingInfo(true);
+    try {
+      const trimmedName = fullName.trim();
+      const trimmedPhone = phone.trim();
+
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ full_name: trimmedName, phone: trimmedPhone })
+        .eq("id", userId);
+      if (profileError) throw profileError;
+
+      // Keep seller_name in sync on all listings owned by this user
+      const { error: listingsError } = await supabase
+        .from("listings")
+        .update({ seller_name: trimmedName })
+        .eq("seller_id", userId);
+      if (listingsError) throw listingsError;
+
+      qc.invalidateQueries({ queryKey: ["dashboard-profile", userId] });
+      qc.invalidateQueries({ queryKey: ["profile-tab", userId] });
+      qc.invalidateQueries({ queryKey: ["my-listings", userId] });
+      toast.success("Profile updated");
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to update profile");
+    } finally {
+      setSavingInfo(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      // Re-authenticate with current password first
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email: userEmail, password: currentPassword });
+      if (signInError) {
+        toast.error("Current password is incorrect");
+        return;
+      }
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success("Password updated successfully");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to update password");
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-6 animate-pulse h-48" />
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Personal information */}
+      <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+        <div className="flex items-center gap-2 mb-5">
+          <UserRound className="h-5 w-5 text-primary" />
+          <h2 className="font-serif text-2xl text-primary">Personal information</h2>
+        </div>
+        <form onSubmit={handleUpdateInfo} className="space-y-4 max-w-md">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground" htmlFor="profile-email">Email address</label>
+            <input
+              id="profile-email"
+              type="email"
+              value={userEmail}
+              disabled
+              className="w-full h-11 rounded-xl border-2 border-border bg-muted px-4 text-sm text-muted-foreground cursor-not-allowed"
+            />
+            <p className="text-xs text-muted-foreground">Email cannot be changed here.</p>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground" htmlFor="profile-name">Full name</label>
+            <input
+              id="profile-name"
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Your full name"
+              className="w-full h-11 rounded-xl border-2 border-border bg-background px-4 text-sm transition focus:border-primary focus:ring-2 focus:ring-primary/25 focus:outline-none"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground" htmlFor="profile-phone">Phone number</label>
+            <input
+              id="profile-phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. 03001234567"
+              className="w-full h-11 rounded-xl border-2 border-border bg-background px-4 text-sm transition focus:border-primary focus:ring-2 focus:ring-primary/25 focus:outline-none"
+            />
+          </div>
+          <Button type="submit" variant="hero" disabled={savingInfo} className="w-full sm:w-auto">
+            {savingInfo ? "Saving…" : "Save changes"}
+          </Button>
+        </form>
+      </div>
+
+      {/* Change password */}
+      <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+        <div className="flex items-center gap-2 mb-5">
+          <KeyRound className="h-5 w-5 text-primary" />
+          <h2 className="font-serif text-2xl text-primary">Change password</h2>
+        </div>
+        <form onSubmit={handleUpdatePassword} className="space-y-4 max-w-md">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground" htmlFor="current-password">Current password</label>
+            <input
+              id="current-password"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Enter current password"
+              autoComplete="current-password"
+              className="w-full h-11 rounded-xl border-2 border-border bg-background px-4 text-sm transition focus:border-primary focus:ring-2 focus:ring-primary/25 focus:outline-none"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground" htmlFor="new-password">New password</label>
+            <input
+              id="new-password"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="At least 8 characters"
+              autoComplete="new-password"
+              className="w-full h-11 rounded-xl border-2 border-border bg-background px-4 text-sm transition focus:border-primary focus:ring-2 focus:ring-primary/25 focus:outline-none"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground" htmlFor="confirm-password">Confirm new password</label>
+            <input
+              id="confirm-password"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Repeat new password"
+              autoComplete="new-password"
+              className="w-full h-11 rounded-xl border-2 border-border bg-background px-4 text-sm transition focus:border-primary focus:ring-2 focus:ring-primary/25 focus:outline-none"
+            />
+          </div>
+          <Button type="submit" variant="hero" disabled={savingPassword || !currentPassword || !newPassword || !confirmPassword} className="w-full sm:w-auto">
+            {savingPassword ? "Updating…" : "Update password"}
+          </Button>
+        </form>
+      </div>
+    </div>
   );
 }
 
