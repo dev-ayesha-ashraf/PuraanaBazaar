@@ -71,7 +71,7 @@ function Browse() {
 
   const { data: soldListings = [] } = useQuery({
     queryKey: ["sold-listings"],
-    queryFn: () => fetchSoldListings({ limit: 8 }),
+    queryFn: () => fetchSoldListings({ limit: 20 }), // Increased limit to 20
   });
 
   const { data: listings = [], isLoading } = useQuery({
@@ -284,20 +284,26 @@ function Browse() {
           </div>
         </div>
 
-        {soldListings.length > 0 && (
-          <div className="mt-20">
-            <div className="flex items-end justify-between gap-4 mb-6">
-              <div>
-                <h2 className="font-serif text-3xl text-primary">Recently Sold</h2>
-                <p className="text-sm text-muted-foreground mt-1">Items that found a new home</p>
-              </div>
-              <span className="px-3 py-1 rounded-full bg-destructive/10 text-destructive text-xs font-semibold uppercase tracking-wider">{soldListings.length} sold</span>
+        {/* Recently Sold section re-added below main listings */}
+        <div className="mt-20">
+          <div className="flex items-end justify-between gap-4 mb-6">
+            <div>
+              <h2 className="font-serif text-3xl text-primary">Recently Sold</h2>
+              <p className="text-sm text-muted-foreground mt-1">Items that found a new home</p>
             </div>
+            <span className="px-3 py-1 rounded-full bg-destructive/10 text-destructive text-xs font-semibold uppercase tracking-wider">{soldListings.length} sold</span>
+          </div>
+          {soldListings.length > 0 ? (
             <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-6">
               {soldListings.map((p) => <ProductCard key={p.id} product={p} />)}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="col-span-full text-center py-20 text-muted-foreground border border-border rounded-2xl bg-card">
+              <div className="text-2xl font-serif mb-2">No items sold yet</div>
+              <div className="text-sm">Your item could be the first to appear here!</div>
+            </div>
+          )}
+        </div>
       </div>
       <Footer />
     </div>

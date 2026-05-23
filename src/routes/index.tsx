@@ -26,6 +26,11 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+    // Fetch recently sold listings
+    const { data: soldListings = [] } = useQuery({
+      queryKey: ["sold-listings-home"],
+      queryFn: () => import("@/lib/listings").then(m => m.fetchSoldListings({ limit: 8 })),
+    });
   const { data: featured = [] } = useQuery({ queryKey: ["featured"], queryFn: () => fetchListings({ featured: true, limit: 4 }) });
   const { data: recent = [] } = useQuery({ queryKey: ["recent"], queryFn: () => fetchListings({ limit: 8 }) });
   const { data: categoryCounts = new Map<string, number>() } = useQuery({
@@ -257,6 +262,21 @@ function Index() {
         <div className={recentView === "list" ? "mt-10 space-y-4" : "mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-6"}>
           {recent.map((p) => <ProductCard key={p.id} product={p} compact={recentView === "list"} />)}
         </div>
+      </section>
+
+      {/* RECENTLY SOLD */}
+      <section className="mx-auto max-w-7xl px-4 md:px-8 py-20">
+        <SectionHead eyebrow="Just sold" title="Recently Sold" cta={{ label: "Browse all", to: "/browse" }} />
+        {soldListings.length > 0 ? (
+          <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {soldListings.map((p) => <ProductCard key={p.id} product={p} />)}
+          </div>
+        ) : (
+          <div className="col-span-full text-center py-20 text-muted-foreground border border-border rounded-2xl bg-card">
+            <div className="text-2xl font-serif mb-2">No items sold yet</div>
+            <div className="text-sm">Your item could be the first to appear here!</div>
+          </div>
+        )}
       </section>
 
       {/* TESTIMONIALS */}
